@@ -5,7 +5,8 @@ interface IFieldProps {
     className?: string;
     name: string;
     pattern?: string;
-    onChange?: (a:any)=>void
+    onChange?: (a:any)=>void;
+    type?: string
 }
 
 
@@ -15,15 +16,12 @@ const TextField : React.FC<IFieldProps>= ({name, label, className='', ...props})
 
 
     return (
-        <div className={`form_input ${meta.touched && meta.error ? 'error': null}`}  >
+        <div className={`form_input text_input ${meta.touched && meta.error ? 'error': null}`}  >
             
-             {label && <label htmlFor={name}>{label}</label>}
-             <div className='form_input__text'>
-                <Field  {...field}  type="text" {...props}/>
-                {meta.touched && meta.error ?(<p>{meta.error}</p>): null}
+            {label && <label htmlFor={name}>{label}</label>}
+            <Field  {...field}  {...props}/>
+            {meta.touched && meta.error ?(<p>{meta.error}</p>): null}
 
-             </div>
-            
         </div>
     )
 }

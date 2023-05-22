@@ -1,5 +1,7 @@
 import DoctorFormContainer from '../form/DoctorFormContainer';
-import './App.css';
+import './App.scss';
+
+
 
 function App() {
   return (

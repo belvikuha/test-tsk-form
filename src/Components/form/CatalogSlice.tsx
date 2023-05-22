@@ -77,13 +77,12 @@ const CatalogsSlice = createSlice({
     }
 });
 
-const {actions, reducer} = CatalogsSlice;
+const {reducer} = CatalogsSlice;
 
 export default reducer;
-// export const {
 
-// } = actions;
 
 export const getDoctorsList = (state:RootState) => state.catalogs.doctorsList
 export const getCityList = (state:RootState) => state.catalogs.cityList
 export const getSpecialityList = (state:RootState) => state.catalogs.specialtyList
+export const getLoading = (state:RootState) => state.catalogs.loading

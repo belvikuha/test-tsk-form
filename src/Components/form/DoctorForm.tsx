@@ -1,10 +1,10 @@
 import React, { useEffect, useState , useCallback} from 'react';
-import { SelectField, TextField } from '../inputs';
 import { useSelector } from 'react-redux';
-import { getDoctorsList, getCityList, getSpecialityList } from './CatalogSlice';
-import {useFormikContext,Field} from 'formik'
-import { IMainFormState, IDoctor, ISpecialty, IOption, ICity } from '../../interfaces';
+import {useFormikContext, } from 'formik'
 
+import { getDoctorsList, getCityList, getSpecialityList } from './CatalogSlice';
+import { IMainFormState, IDoctor, ISpecialty, IOption, ICity } from '../../interfaces';
+import { SelectField, TextField, MaskInput} from '../inputs';
 
 
 function calculateAge(birthDate: string): number {
@@ -17,11 +17,11 @@ function calculateAge(birthDate: string): number {
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
         age--;
     }
-    console.log(age)
+  
     return age;
 }
 
-const DoctorForm = () => {
+const DoctorForm : React.FC = () => {
 
     const doctors  = useSelector(getDoctorsList),
     cities = useSelector(getCityList),
@@ -30,60 +30,39 @@ const DoctorForm = () => {
     const {values, setFieldValue} = useFormikContext<IMainFormState>();
     const {doctor, sex, specialty, city, birthDate} = values
 
-    const [doctorsFilteredList, setDoctorsFilteredList]  =  useState<IOption[]>([])
+    const [doctorsFilteredList, setDoctorsFilteredList]  =  useState<IDoctor[]>(doctors)
     const [specialtyFilteredList, setSpecialtyFilteredList]  =  useState<ISpecialty[]>(specialities)
     const [patientAge, setPatientAge] = useState<number>(18)
     
 
     const composeDocList = (docs: IDoctor[]): IOption[] =>{
-       var t = docs.map(doc=>{return{value:doc.id, label:`${doc.name} ${doc.surname} ${ doc.isPediatrician && ('(pediatrician)')}` }})
+       var t = docs.map(doc=>{return{value:doc.id, label:`${doc.name} ${doc.surname} ${ doc.isPediatrician ? '(pediatrician)': ''}` }})
        return t
     }
+    const formOptions = (list: Array<ISpecialty | ICity>) : IOption[]=>{
+        return list.map((item)=>{return {value:item.id, label: item.name}})
+    }
+
 
     useEffect(()=>{
-        setDoctorsFilteredList(composeDocList(doctors))
+        setDoctorsFilteredList(doctors)
     },[doctors])
     useEffect(()=>{
         setSpecialtyFilteredList(specialities)
     },[specialities])
 
-    // const filterDocList = useCallback(( condition: (item : IDoctor) => boolean ) =>{
-    //     const befittingDocs : IDoctor[] =  doctorsFilteredList.filter(condition) 
-    //     setDoctorsFilteredList(befittingDocs)
-    //  },[doctorsFilteredList])
-
-    useEffect(() => {
-        if(birthDate !== ''){
-            var age : number = calculateAge(birthDate)
-            setPatientAge(age) 
-        }
-    }, [birthDate]);
+   
 
 
-    // useEffect(()=>{
-    //     if(patientAge < 18){
-    //         filterDocList(doc => doc.isPediatrician) 
-    //     }
-    // },[patientAge])
-
-    // useEffect(() => {
-    //     filterDocList(doc => (+doc.specialityId === +specialty) )
-    // }, [specialty]);
-
-    // useEffect(() => {
-    //     filterDocList(doc => (+doc.cityId === +city)) 
-    // }, [ city]);
 
     const findUniqueSpecIds = useCallback(()=>{
         return new Set(specialtyFilteredList.map(obj => obj.id));
     },[specialtyFilteredList])
 
-    const formOptions = useCallback((list: Array<ISpecialty | ICity>) : IOption[]=>{
-        return list.map((item)=>{return {value:item.id, label: item.name}})
-    },[])
+   
 
-    useEffect(() => {
 
+    const filterDoctors = useCallback(()=>{
         var befittingDocs : IDoctor[] = doctors;
 
         var uniqueSpecIds =  findUniqueSpecIds()
@@ -99,17 +78,34 @@ const DoctorForm = () => {
             befittingDocs = befittingDocs.filter(doc => doc.isPediatrician) 
         }
 
-        setDoctorsFilteredList(composeDocList(befittingDocs))
-    }, [doctors, city, specialty, patientAge, specialtyFilteredList]);
+        setDoctorsFilteredList(befittingDocs)
+    },[doctors, city, specialty, patientAge, specialtyFilteredList])
 
-    useEffect(() => {
+    const filterSpecialty = useCallback(()=>{
         var spec = specialities.filter(spec =>
             (!spec?.params?.gender || spec?.params?.gender === sex ) &&
             (!spec?.params?.maxAge || spec?.params?.maxAge >= patientAge) &&
             (!spec?.params?.minAge || spec?.params?.minAge <= patientAge)
         )
         setSpecialtyFilteredList(spec)
+    },[sex, patientAge, specialities])
+
+    useEffect(() => {
+        filterDoctors()
+    }, [doctors, city, specialty, patientAge, specialtyFilteredList]);
+
+    
+    useEffect(() => {
+        filterSpecialty()
     }, [sex, patientAge, specialities]);
+
+
+    useEffect(() => {
+        if(birthDate !== ''){
+            var age : number = calculateAge(birthDate)
+            setPatientAge(age) 
+        }
+    }, [birthDate]);
 
 
     useEffect(() => {
@@ -117,61 +113,70 @@ const DoctorForm = () => {
             var currentDoctor : IDoctor | undefined  = doctors.find(doc => +doc.id === +doctor)
             setFieldValue('specialty', currentDoctor?.specialityId)
             setFieldValue('city', currentDoctor?.cityId)
-        }
-        
+        }    
     }, [doctor, doctors]);
 
 
-    // useEffect(() => {
-    //     console.log(doctorsFilteredList)
-    // }, [doctorsFilteredList]);
-    // useEffect(() => {
-    //     console.log(specialtyFilteredList)
-    // }, [specialtyFilteredList]);
 
     const nameValidate = useCallback((e: any)=>{
         setFieldValue('name', e.target.value.replace(/[0-9]/gi, ''))
     },[])
 
-    return (
-        <div style={{padding: '1em'}}>
-             <TextField
-                 name="name"
-                 label='Name'
-                 onChange={nameValidate}
-             />
-            <Field type="date" name="birthDate"/>
-            <SelectField
-                name="sex"
-                options={[{value:'Male', label:'Male'},{value:'Female', label:'Female'}]}
-                notEmpty={true}
-                label="Sex"
-            />
 
-            <SelectField
-                name="city"
-                options={formOptions(cities)}
-                label="City"
-            />
-            <SelectField
-                name="specialty"
-                options={formOptions(specialtyFilteredList)}
-                label="Specialty"
-            />
-            <SelectField
-                name="doctor"
-                options={doctorsFilteredList}
-                label= "Doctor"
-            />
-            <TextField 
-                name = "email"
-                label= "Email"
-            />
-             <TextField 
-                name = "phoneNumber"
-                label= "phoneNumber"
-            />
-            
+    return (
+        <div className='form'>
+             
+            <div>
+                <TextField
+                    name="name"
+                    label='Name'
+                    onChange={nameValidate}
+                />
+
+                <MaskInput
+                    label='Birthday Date' 
+                    name="birthDate"
+                    mask="99/99/9999"
+                />
+
+                <SelectField
+                    name="sex"
+                    options={[{value:'Male', label:'Male'},{value:'Female', label:'Female'}]}
+                    notEmpty={true}
+                    label="Sex"
+                />
+
+                <TextField 
+                    name = "email"
+                    label= "Email"
+                    type="email"
+                />
+                <MaskInput
+                    name="phoneNumber"
+                    label="Mobile number"
+                    mask="+38(099)-999-99-99"
+                    maskPlaceholder="_"
+                />
+            </div>
+            <div>
+                <SelectField
+                    name="city"
+                    options={formOptions(cities)}
+                    label="City"
+                />
+                <SelectField
+                    name="specialty"
+                    options={formOptions(specialtyFilteredList)}
+                    label="Specialty"
+                />
+                <SelectField
+                    name="doctor"
+                    options={composeDocList(doctorsFilteredList)}
+                    label= "Doctor"
+                />
+           
+            </div>
+             <button type="submit">submit</button>
         </div>
     );
 };
